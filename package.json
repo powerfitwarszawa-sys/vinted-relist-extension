@@ -12,7 +12,7 @@
     "lint:fix": "eslint src/ --ext .ts --fix",
     "format": "prettier --write 'src/**/*.ts' '*.json' '*.md'",
     "typecheck": "tsc --noEmit",
-    "test": "node tests/core.test.mjs && node tests/relist-safety.test.mjs && node tests/scan-cache.test.mjs && node tests/background-backup-test.mjs && node tests/queue-test.mjs && node tests/auto-relist.test.mjs"
+    "test": "node tests/core.test.mjs && node tests/relist-safety.test.mjs && node tests/scan-cache.test.mjs && node tests/background-backup-test.mjs && node tests/queue-test.mjs && node tests/auto-relist.test.mjs && node tests/messages/build.mjs && node tests/messages/template-engine.test.mjs && node tests/messages/template-rotation.test.mjs && node tests/messages/cooldown.test.mjs && node tests/messages/safety-lock.test.mjs"
   },
   "lint-staged": {
     "src/**/*.ts": [
