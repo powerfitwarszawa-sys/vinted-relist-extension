@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vinted Relister — panel lokalny</title>
+  <link rel="stylesheet" href="../shared/tokens.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="dash-app">
+    <aside class="dash-sidebar" aria-label="Nawigacja panelu">
+      <div class="dash-brand">
+        <span class="dash-brand__mark" aria-hidden="true">R</span>
+        <span class="dash-brand__name">relist.</span>
+      </div>
+
+      <nav class="dash-nav">
+        <button class="dash-nav__btn dash-nav__btn--active" data-tab="listings">
+          <span class="dash-nav__icon" aria-hidden="true">⌑</span> Garderoba
+        </button>
+        <button class="dash-nav__btn" data-tab="queue">
+          <span class="dash-nav__icon" aria-hidden="true">↻</span> Kolejka
+        </button>
+        <button class="dash-nav__btn" data-tab="stats">
+          <span class="dash-nav__icon" aria-hidden="true">◴</span> Aktywność
+        </button>
+        <button class="dash-nav__btn" data-tab="backups">
+          <span class="dash-nav__icon" aria-hidden="true">▣</span> Kopie lokalne
+        </button>
+
+        <span class="dash-nav__label">Rozwój produktu</span>
+        <button class="dash-nav__btn dash-nav__btn--planned" data-tab="modules">
+          <span class="dash-nav__icon" aria-hidden="true">◇</span> Plan modułów
+        </button>
+      </nav>
+
+      <div class="dash-sidebar__footer">
+        <span class="dash-sidebar__footer-label">Tryb lokalny</span>
+        <span class="dash-sidebar__footer-note">Dane pozostają w Chrome</span>
+      </div>
+    </aside>
+
+    <div class="dash-workspace">
+      <header class="dash-header">
+        <div>
+          <p class="dash-header__eyebrow">Vinted Local Relist</p>
+          <h1>Panel garderoby</h1>
+        </div>
+        <span class="dash-version">v0.2.3 · MVP</span>
+      </header>
+
+      <main class="dash-main">
+        <section id="tab-listings" class="dash-tab dash-tab--active">
+          <div class="dash-notice" role="status">
+            <span aria-hidden="true">✦</span>
+            <span>Najpierw przeskanuj aktywną stronę Vinted, następnie zaznacz oferty i uruchom ponowne wystawienie. Każda pozycja dostaje lokalną kopię przed kolejką.</span>
+          </div>
+
+          <div class="dash-section-tabs" aria-label="Widok garderoby">
+            <span class="dash-section-tabs__item dash-section-tabs__item--active">Przedmioty</span>
+          </div>
+
+          <div class="dash-toolbar">
+            <button id="dashScanBtn" type="button" class="dash-btn dash-btn--primary">Skanuj stronę</button>
+            <select id="dashBulkAction" class="dash-select dash-select--action" aria-label="Akcja wsadowa">
+              <option value="relist">Ponów publikację</option>
+            </select>
+            <button id="dashRelistBtn" type="button" class="dash-btn dash-btn--dark" disabled>Wykonaj</button>
+            <input id="dashSearchInput" type="search" class="dash-search" placeholder="Szukaj w przedmiotach" aria-label="Szukaj w przedmiotach">
+            <select id="dashStatusFilter" class="dash-select" aria-label="Filtr statusu">
+              <option value="all">Status: wszystkie</option>
+              <option value="active">Aktywne</option>
+              <option value="hidden">Ukryte</option>
+              <option value="sold">Sprzedane</option>
+              <option value="reserved">Zarezerwowane</option>
+              <option value="draft">Szkice</option>
+              <option value="unknown">Nieznane</option>
+            </select>
+            <select id="dashSortSelect" class="dash-select" aria-label="Sortowanie">
+              <option value="title">Sortuj: tytuł</option>
+              <option value="price-asc">Cena: rosnąco</option>
+              <option value="price-desc">Cena: malejąco</option>
+              <option value="id">ID</option>
+            </select>
+            <button id="dashClearBtn" type="button" class="dash-btn dash-btn--quiet">Wyczyść kolejkę</button>
+          </div>
+
+          <div id="dashScanSummary" class="dash-scan-summary">Nie przeskanowano jeszcze strony.</div>
+
+          <div class="dash-status-bar">
+            <span class="dash-status-item"><span class="dash-status-dot dash-color--idle"></span> Stan: <strong id="dashState">bezczynny</strong></span>
+            <span class="dash-status-item">W kolejce: <strong id="dashTotal">0</strong></span>
+            <span class="dash-status-item dash-color--ok">Gotowe: <strong id="dashDone">0</strong></span>
+            <span class="dash-status-item dash-color--err">Błędy: <strong id="dashFailed">0</strong></span>
+            <span class="dash-status-item">Aktualnie: <strong id="dashCurrent">—</strong></span>
+          </div>
+
+          <div class="dash-progress" aria-hidden="true"><div id="dashProgressFill" class="dash-progress__fill" style="width:0%"></div></div>
+
+          <div class="dash-table-shell">
+            <div class="dash-grid-header">
+              <label><input id="dashSelectAll" type="checkbox" aria-label="Zaznacz wszystkie widoczne oferty"></label>
+              <span>Zdjęcie</span>
+              <span>Przedmiot</span>
+              <span>Cena</span>
+              <span>Status</span>
+              <span>Akcja</span>
+            </div>
+            <div id="dashListings" class="dash-grid"><em class="dash-empty">Kliknij „Skanuj stronę”, aby pobrać widoczne oferty.</em></div>
+          </div>
+
+          <div class="dash-quick-actions">
+            <a class="dash-quick-link" href="https://www.vinted.pl/member/107890191" target="_blank">Otwórz profil Vinted ↗</a>
+          </div>
+        </section>
+
+        <section id="tab-queue" class="dash-tab">
+          <div class="dash-tab-heading">
+            <div><p class="dash-header__eyebrow">Kontrola wykonania</p><h2>Kolejka publikacji</h2></div>
+            <div class="dash-queue-actions">
+              <button id="dashPauseBtn" type="button" class="dash-btn" disabled>Wstrzymaj</button>
+              <button id="dashResumeBtn" type="button" class="dash-btn dash-btn--dark" disabled>Wznów</button>
+            </div>
+          </div>
+          <div id="dashQueueItems" class="dash-grid dash-grid--standalone"><em class="dash-empty">Kolejka jest pusta.</em></div>
+        </section>
+
+        <section id="tab-stats" class="dash-tab">
+          <div class="dash-tab-heading"><div><p class="dash-header__eyebrow">Dane lokalne</p><h2>Aktywność</h2></div></div>
+          <div class="dash-stats-grid">
+            <div class="dash-stat-card"><span class="dash-stat-card__label">Ponowione dziś</span><span id="dashStatsToday" class="dash-stat-card__value">0</span></div>
+            <div class="dash-stat-card dash-stat-card--ok"><span class="dash-stat-card__label">Sukcesy</span><span id="dashStatsOk" class="dash-stat-card__value">0</span></div>
+            <div class="dash-stat-card dash-stat-card--err"><span class="dash-stat-card__label">Błędy</span><span id="dashStatsErr" class="dash-stat-card__value">0</span></div>
+            <div class="dash-stat-card"><span class="dash-stat-card__label">Wszystkie sukcesy</span><span id="dashStatsTotal" class="dash-stat-card__value">0</span></div>
+          </div>
+          <div class="dash-section-title">Dziennik aktywności</div>
+          <div id="dashLogs" class="dash-logs"><em>Brak wpisów.</em></div>
+        </section>
+
+        <section id="tab-backups" class="dash-tab">
+          <div class="dash-tab-heading">
+            <div><p class="dash-header__eyebrow">Zabezpieczenie</p><h2>Kopie lokalne</h2></div>
+            <button id="dashExportBtn" type="button" class="dash-btn">Eksportuj JSON</button>
+          </div>
+          <div id="dashBackupItems" class="dash-grid dash-grid--standalone"><em class="dash-empty">Brak zapisanych kopii.</em></div>
+        </section>
+
+        <section id="tab-modules" class="dash-tab">
+          <div class="dash-tab-heading"><div><p class="dash-header__eyebrow">Bez ukrytych przełączników</p><h2>Plan modułów</h2></div></div>
+          <p class="dash-module-note">Aktywny jest wyłącznie moduł ponownej publikacji. Pozostałe elementy są planem rozwoju i nie uruchamiają automatyzacji.</p>
+          <div id="dashModules" class="dash-module-grid"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="dashErrorBanner" class="dash-error" style="display:none">
+    <div class="dash-error__header">
+      <span class="dash-error__label">Błąd</span>
+      <button id="dashErrorClose" class="dash-error__close" type="button" aria-label="Zamknij błąd" title="Zamknij błąd">×</button>
+    </div>
+    <span id="dashErrorMsg" class="dash-error__msg"></span>
+    <button id="dashErrorPanelBtn" class="dash-btn dash-btn--dark" style="display:none;margin-top:8px;width:100%">Otwórz profil sprzedawcy</button>
+  </div>
+
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

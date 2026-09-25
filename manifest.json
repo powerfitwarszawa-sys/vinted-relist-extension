@@ -1,0 +1,91 @@
+{
+  "manifest_version": 3,
+  "name": "Vinted Batch Relister",
+  "version": "0.3.1",
+  "description": "Pro-polished local MVP for controlled Vinted batch relisting.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "alarms",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.vinted.com/*",
+    "https://*.vinted.pl/*",
+    "https://*.vinted.fr/*",
+    "https://*.vinted.de/*",
+    "https://*.vinted.co.uk/*",
+    "https://*.vinted.nl/*",
+    "https://*.vinted.be/*",
+    "https://*.vinted.es/*",
+    "https://*.vinted.it/*",
+    "https://*.vinted.lt/*",
+    "https://*.vinted.lv/*",
+    "https://*.vinted.cz/*",
+    "https://*.vinted.net/*",
+    "https://*.vinted-cdn.com/*"
+  ],
+  "background": {
+    "service_worker": "dist/background/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.vinted.com/*",
+        "https://*.vinted.pl/*",
+        "https://*.vinted.fr/*",
+        "https://*.vinted.de/*",
+        "https://*.vinted.co.uk/*",
+        "https://*.vinted.nl/*",
+        "https://*.vinted.be/*",
+        "https://*.vinted.es/*",
+        "https://*.vinted.it/*",
+        "https://*.vinted.lt/*",
+        "https://*.vinted.lv/*",
+        "https://*.vinted.cz/*"
+      ],
+      "js": [
+        "dist/content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dist/content/*.js",
+        "dist/core/*.js"
+      ],
+      "matches": [
+        "https://*.vinted.com/*",
+        "https://*.vinted.pl/*",
+        "https://*.vinted.fr/*",
+        "https://*.vinted.de/*",
+        "https://*.vinted.co.uk/*",
+        "https://*.vinted.nl/*",
+        "https://*.vinted.be/*",
+        "https://*.vinted.es/*",
+        "https://*.vinted.it/*",
+        "https://*.vinted.lt/*",
+        "https://*.vinted.lv/*",
+        "https://*.vinted.cz/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "dist/popup/popup.html",
+    "default_title": "Vinted Batch Relister",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "options_page": "dist/options/options.html"
+}

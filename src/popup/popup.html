@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vinted Local Relist</title>
+  <link rel="stylesheet" href="../shared/tokens.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="popup">
+    <header class="popup-header">
+      <div class="popup-header__brand">
+        <span class="popup-header__mark" aria-hidden="true">R</span>
+        <div>
+          <span class="popup-header__eyebrow">Vinted Local Relist</span>
+          <h1>Garderoba</h1>
+        </div>
+      </div>
+      <span class="popup-header__badge">MVP</span>
+    </header>
+
+    <section class="stats-bar" aria-label="Statystyki relistów">
+      <span><strong id="statsToday" class="stats-bar__value">0</strong> dziś</span>
+      <span class="stats-bar__ok"><strong id="statsOk">0</strong> udanych</span>
+      <span class="stats-bar__err"><strong id="statsErr">0</strong> błędów</span>
+      <span class="stats-bar__total"><strong id="statsTotal">0</strong> łącznie</span>
+    </section>
+
+    <p class="popup-notice">Skanuje garderobę zalogowanego konta. Relist uruchamiasz wyłącznie ręcznie.</p>
+    <p id="scanSummary" class="popup-scan-summary" aria-live="polite">Nie wykonano jeszcze skanowania.</p>
+
+    <section class="toolbar" aria-label="Akcje kolejki">
+      <button id="scanBtn" type="button" class="toolbar__btn toolbar__btn--primary">Skanuj garderobę</button>
+      <button id="relistBtn" type="button" class="toolbar__btn toolbar__btn--dark" disabled>Wykonaj relist</button>
+      <button id="pauseBtn" type="button" class="toolbar__btn">Wstrzymaj</button>
+      <button id="resumeBtn" type="button" class="toolbar__btn">Wznów</button>
+      <button id="clearBtn" type="button" class="toolbar__btn toolbar__btn--danger">Wyczyść</button>
+    </section>
+
+    <section class="status-bar" aria-label="Stan kolejki">
+      <div class="status-bar__item">
+        <span class="status-bar__label">Kolejka</span>
+        <span id="state" class="status-bar__value">bezczynna</span>
+      </div>
+      <div class="status-bar__item">
+        <span class="status-bar__label">Łącznie</span>
+        <span id="total" class="status-bar__value">0</span>
+      </div>
+      <div class="status-bar__item">
+        <span class="status-bar__label">Gotowe</span>
+        <span id="completed" class="status-bar__value">0</span>
+      </div>
+      <div class="status-bar__item">
+        <span class="status-bar__label">Błędy</span>
+        <span id="failed" class="status-bar__value">0</span>
+      </div>
+      <div class="status-bar__item status-bar__item--current">
+        <span class="status-bar__label">Aktualna</span>
+        <span id="currentId" class="status-bar__value">—</span>
+      </div>
+    </section>
+
+    <div class="progress-bar" aria-label="Postęp kolejki">
+      <div id="progressFill" class="progress-bar__fill" style="width: 0%"></div>
+    </div>
+
+    <section class="listings" aria-label="Lista aukcji">
+      <div class="listings__controls">
+        <label class="listings__select-all" title="Zaznacz wszystkie widoczne aukcje">
+          <input id="selectAll" type="checkbox" disabled>
+          <span>Zaznacz</span>
+        </label>
+        <label class="listings__sort-label">
+          <span>Sortuj</span>
+          <select id="sortSelect" class="sort-select" aria-label="Sortowanie aukcji">
+            <option value="title">Tytuł</option>
+            <option value="price">Cena</option>
+            <option value="id">ID</option>
+          </select>
+        </label>
+        <label class="listings__sort-label">
+          <span>Status</span>
+          <select id="sourceStatusFilter" class="sort-select" aria-label="Status aukcji">
+            <option value="all">Wszystkie</option>
+            <option value="active">Aktywne</option>
+            <option value="hidden">Ukryte</option>
+            <option value="sold">Sprzedane</option>
+            <option value="reserved">Zarezerwowane</option>
+            <option value="draft">Szkice</option>
+            <option value="unknown">Nieznane</option>
+          </select>
+        </label>
+        <span id="bulkPriceWrap" class="bulk-price-wrap" style="display:none">
+          <input id="bulkPriceInput" type="number" class="bulk-price-input" placeholder="Cena" min="0" step="0.5" aria-label="Nowa cena dla zaznaczonych aukcji">
+          <button id="bulkPriceApply" type="button" class="bulk-price-apply" title="Ustaw cenę dla wszystkich zaznaczonych">Ustaw</button>
+        </span>
+      </div>
+      <div class="listings__search">
+        <input id="searchInput" type="text" class="search-input" placeholder="Szukaj po tytule">
+      </div>
+      <div class="listings__table-header" aria-hidden="true">
+        <span></span><span></span><span>Aukcja</span><span>Cena</span><span>Status</span>
+      </div>
+      <div id="listings"><em class="listings__empty">Kliknij „Skanuj garderobę”, aby pobrać aukcje.</em></div>
+    </section>
+
+    <section id="lastErrorRow" class="error-banner" style="display: none;">
+      <span class="error-banner__label">Ostatni błąd</span>
+      <span id="lastError" class="error-banner__message">—</span>
+    </section>
+
+    <section class="logs">
+      <div class="logs__header">
+        <h2>Ostatnie zdarzenia</h2>
+        <button id="clearLogsBtn" type="button" class="logs__clear-btn">Wyczyść log</button>
+      </div>
+      <div id="logs"><em>Brak zdarzeń.</em></div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer__links">
+        <a id="dashboardLink" href="#">Panel</a>
+        <a id="vintedPanelLink" href="#" title="Otwórz panel sprzedawcy Vinted">Vinted</a>
+        <a id="optionsLink" href="#">Ustawienia</a>
+        <a id="backupsLink" href="#">Kopie</a>
+      </div>
+      <span class="footer__version">v0.3.1</span>
+    </footer>
+
+    <div id="previewOverlay" class="preview-overlay" style="display: none;">
+      <div class="preview-overlay__backdrop"></div>
+      <div class="preview-overlay__panel" role="dialog" aria-modal="true" aria-label="Potwierdzenie relistu">
+        <div class="preview-overlay__content">
+          <img id="previewThumb" class="preview-overlay__thumb" src="" alt="">
+          <div class="preview-overlay__details">
+            <input id="previewTitleInput" class="preview-overlay__input" type="text" placeholder="Tytuł">
+            <input id="previewPriceInput" class="preview-overlay__input preview-overlay__input--price" type="text" placeholder="Cena">
+            <span id="previewId" class="preview-overlay__id"></span>
+            <textarea id="previewDescInput" class="preview-overlay__textarea" rows="3" placeholder="Opis (jeśli dostępny)"></textarea>
+            <span class="preview-overlay__hint">Pola są informacyjne. Treść zostanie zapisana w kopii zapasowej.</span>
+          </div>
+        </div>
+        <div class="preview-overlay__actions">
+          <button id="previewCancel" type="button" class="toolbar__btn">Anuluj</button>
+          <button id="previewRelist" type="button" class="toolbar__btn toolbar__btn--primary">Kontynuuj relist</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

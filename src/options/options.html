@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vinted Batch Relister — Ustawienia</title>
+  <link rel="stylesheet" href="../shared/tokens.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="options">
+    <h1>Ustawienia</h1>
+
+    <form id="optionsForm">
+      <label class="field">
+        <input type="checkbox" id="enabled">
+        <span>Rozszerzenie włączone</span>
+      </label>
+
+      <label class="field">
+        <input type="checkbox" id="draftMode">
+        <span>Tryb szkicu — otwórz ofertę bez automatycznego relistu</span>
+        <small>Rozszerzenie przejdzie do każdej oferty, ale nie kliknie akcji. Sprawdzisz i wykonasz relist ręcznie.</small>
+      </label>
+
+      <label class="field">
+        <span>Podstawowy odstęp między relistami (ms)</span>
+        <input type="number" id="delayBaseMs" min="500" step="500" value="3000">
+        <small>Minimalne oczekiwanie między kolejnymi ofertami.</small>
+      </label>
+
+      <label class="field">
+        <span>Maksymalny losowy dodatek (ms)</span>
+        <input type="number" id="jitterMaxMs" min="0" step="500" value="2000">
+        <small>Losowy czas dodawany do podstawowego odstępu.</small>
+      </label>
+
+      <label class="field">
+        <span>Maksymalna liczba równoległych relistów</span>
+        <input type="number" id="maxConcurrent" min="1" max="5" step="1" value="1">
+        <small>Obecnie zawsze 1 — przetwarzanie jest sekwencyjne.</small>
+      </label>
+
+      <fieldset class="auto-relist">
+        <legend>Automatyczne podbijanie (auto-relist)</legend>
+
+        <label class="field">
+          <input type="checkbox" id="autoRelistEnabled">
+          <span>Włącz automatyczne podbijanie ofert</span>
+          <small>Co cykl rozszerzenie wybiera aktywne oferty z ostatniego skanu i dokłada je do tej samej kolejki, której używasz ręcznie. Kolejka nigdy nie jest przerywana w trakcie pracy.</small>
+        </label>
+
+        <label class="field">
+          <span>Co ile minut nowy cykl</span>
+          <input type="number" id="autoRelistIntervalMinutes" min="1" step="5" value="60">
+          <small>Zalecane co najmniej 60 minut, aby nie wyglądało to na botowanie.</small>
+        </label>
+
+        <label class="field">
+          <span>Maksymalna liczba ofert na cykl</span>
+          <input type="number" id="autoRelistMaxPerCycle" min="1" max="200" step="1" value="5">
+          <small>Mniejsze partie są bezpieczniejsze dla limitu API.</small>
+        </label>
+
+        <label class="field">
+          <span>Minimalny czas od ostatniego podbicia (h)</span>
+          <input type="number" id="autoRelistMinHoursSinceRelist" min="0" max="720" step="1" value="24">
+          <small>Oferty podbite wcześniej niż tyle godzin temu zostają pominięte w cyklu.</small>
+        </label>
+
+        <p id="scanInfo" class="scan-info" aria-live="polite">Sprawdzam zapisany skan…</p>
+      </fieldset>
+
+      <button type="submit" id="saveBtn">Zapisz ustawienia</button>
+    </form>
+
+    <div id="status" class="status"></div>
+
+    <section class="info">
+      <h2>Bezpieczne tempo API</h2>
+      <p>
+        Jeśli relist przejdzie na awaryjną ścieżkę API, używaj odstępu liczonego w minutach.
+        Seria automatycznie zatrzyma się po błędzie API 401, 403 lub 429.
+      </p>
+      <button id="applyApiDelayBtn" type="button" class="api-safety__button">Ustaw zalecenie: 3 min + do 1 min losowo</button>
+    </section>
+
+    <section class="info">
+      <h2>Wskazówki</h2>
+      <ul>
+        <li>Większe odstępy ograniczają ryzyko szybkiej, powtarzalnej serii działań.</li>
+        <li>Dodatek losowy różnicuje odstępy między kolejnymi ofertami.</li>
+        <li><strong>Tryb szkicu</strong> otwiera ofertę do ręcznej kontroli, bez klikania akcji.</li>
+        <li>Skan pobiera garderobę zalogowanego konta przez bieżącą sesję Vinted, a po błędzie używa tylko widocznych kart.</li>
+      </ul>
+    </section>
+  </main>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

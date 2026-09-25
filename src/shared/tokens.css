@@ -1,0 +1,58 @@
+/**
+ * Shared UI design tokens for the Vinted Relister surfaces.
+ *
+ * Single source of truth for colors, radii, spacing, fonts, and shadows used
+ * by the popup, the Garderoba dashboard, and the options page. Each surface
+ * maps its local semantic names (--popup-*, --dash-*) onto these tokens so
+ * values can never drift between views again.
+ */
+
+:root {
+  /* Palette — warm neutral system inspired by the Garderoba view. */
+  --ui-ink: #1c1c1c;
+  --ui-muted: #716b63;
+  --ui-faint: #aaa197;
+  --ui-bg: #f4f1eb;
+  --ui-surface: #ffffff;
+  --ui-soft: #fbfaf8;
+  --ui-line: #e7e0d6;
+  --ui-line-strong: #d8cec1;
+
+  /* Semantic accents */
+  --ui-accent: #cb1e24;
+  --ui-accent-strong: #a3151b;
+  --ui-success: #1e7a51;
+  --ui-warning: #a8661d;
+  --ui-danger: #b52930;
+
+  /* Status badge palette */
+  --ui-badge-muted: #aa0a70;
+  --ui-badge-quiet: #8d7d6b;
+  --ui-badge-sold: #5d6685;
+  --ui-badge-reserved: #98621f;
+  --ui-badge-draft: #745f86;
+  --ui-badge-unknown: #77716a;
+
+  /* Radius */
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 10px;
+  --ui-radius-lg: 16px;
+  --ui-radius-full: 99px;
+
+  /* Spacing scale */
+  --ui-gap-2xs: 2px;
+  --ui-gap-xs: 4px;
+  --ui-gap-sm: 8px;
+  --ui-gap-md: 12px;
+  --ui-gap-lg: 16px;
+  --ui-gap-xl: 24px;
+
+  /* Type */
+  --ui-font: Inter, Aptos, "Segoe UI", sans-serif;
+  --ui-font-size-sm: 12px;
+  --ui-font-size-md: 14px;
+
+  /* Effects */
+  --ui-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --ui-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+}

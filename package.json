@@ -1,0 +1,32 @@
+{
+  "name": "vinted-batch-relist-mvp",
+  "version": "0.3.1",
+  "private": true,
+  "type": "module",
+  "description": "Pro-polished local Chrome MV3 extension for controlled batch relisting of Vinted listings.",
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "build:dev": "node scripts/build.cjs --dev",
+    "watch": "node scripts/build.cjs --dev --watch",
+    "lint": "eslint src/ --ext .ts",
+    "lint:fix": "eslint src/ --ext .ts --fix",
+    "format": "prettier --write 'src/**/*.ts' '*.json' '*.md'",
+    "typecheck": "tsc --noEmit",
+    "test": "node tests/core.test.mjs && node tests/relist-safety.test.mjs && node tests/scan-cache.test.mjs && node tests/background-backup-test.mjs && node tests/queue-test.mjs && node tests/auto-relist.test.mjs"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.2.2",
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
+    "@typescript-eslint/parser": "^8.64.0",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.7.0",
+    "prettier": "^3.9.5",
+    "typescript": "^5.5.0"
+  }
+}
