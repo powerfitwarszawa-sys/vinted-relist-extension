@@ -33,3 +33,11 @@ export {
   saveConversationSnapshot,
   getConversationSnapshot,
 } from './conversation-snapshot';
+export { validateStoredSnapshot, migrateStoredSnapshot } from './snapshot-schema';
+export type { ConversationSnapshot, SaveSnapshotResult } from './snapshot-schema';
+export {
+  createMemorySnapshotStorage,
+  createChromeSnapshotStorage,
+  SnapshotStorageError,
+} from './snapshot-storage';
+export type { SnapshotStorageAdapter, MemorySnapshotStorage } from './snapshot-storage';

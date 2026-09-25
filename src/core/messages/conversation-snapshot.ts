@@ -1,70 +1,39 @@
 /**
- * Local conversation snapshot (T3.4) — own namespace, independent from the
- * relist scan cache (`vbr:lastScan`).
+ * Local conversation snapshot (T3.4 + T4A) — own namespace, independent
+ * from the relist scan cache (`vbr:lastScan`).
  *
  * Rules:
- *  - a snapshot is persisted ONLY for a `complete` scan; incomplete scans
- *    are refused and never overwrite a previously stored snapshot,
- *  - reads fail closed: missing/corrupt/foreign-schema data yields `null`,
- *    never a half-parsed object,
- *  - the fingerprint is a deterministic FNV-1a-based fingerprint of the
- *    normalized data (change detection, NOT a cryptographic signature),
- *  - persistence goes through chrome.storage.local; in Node tests the
- *    global `chrome` is mocked (same pattern as src/core/scan-cache.ts).
+ *  - a snapshot is persisted ONLY for a `complete` scan; incomplete
+ *    scans are refused and never overwrite a previously stored snapshot,
+ *  - writes are atomic per key: the payload is built AND validated
+ *    BEFORE the single storage call — a failure at any earlier step
+ *    leaves the previous snapshot untouched,
+ *  - reads fail closed: missing/corrupt/foreign-schema data yields
+ *    `null` (see snapshot-schema.ts: validation + legacy migration),
+ *  - persistence goes through SnapshotStorageAdapter (snapshot-storage.ts):
+ *    chrome.storage.local by default, injectable for tests without any
+ *    Chrome API.
  */
 
-import type { Conversation, ConversationScanResult, ConversationScanWarning } from './contracts';
+import type { ConversationScanResult } from './contracts';
+import {
+  CONVERSATION_SNAPSHOT_SCHEMA_VERSION,
+  migrateStoredSnapshot,
+  validateStoredSnapshot,
+} from './snapshot-schema';
+import type { ConversationSnapshot, SaveSnapshotResult } from './snapshot-schema';
+import { fingerprintConversations } from './snapshot-fingerprint';
+import {
+  createChromeSnapshotStorage,
+  type SnapshotStorageAdapter,
+} from './snapshot-storage';
 
 export const CONVERSATION_SNAPSHOT_KEY = 'vbr:messages:conversation-snapshot';
-export const CONVERSATION_SNAPSHOT_SCHEMA_VERSION = 1;
 
-export interface ConversationSnapshot {
-  schemaVersion: number;
-  scanId: string;
-  startedAt: string;
-  finishedAt: string;
-  /** When this snapshot was written to storage (epoch ms → ISO). */
-  savedAt: string;
-  source: 'dom' | 'read-only-api';
-  conversationCount: number;
-  hasMore: boolean;
-  nextCursor?: string;
-  warnings: ConversationScanWarning[];
-  /** Deterministic fingerprint of the normalized conversation data. */
-  fingerprint: string;
-  conversations: Conversation[];
-}
-
-export type SaveSnapshotResult =
-  | { ok: true; snapshot: ConversationSnapshot }
-  | { ok: false; error: string };
-
-// ── fingerprint ────────────────────────────────────────────────────
-
-function fnv1a32(input: string, seed: number): number {
-  let hash = seed >>> 0;
-  for (let index = 0; index < input.length; index++) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash >>> 0;
-}
-
-/**
- * Deterministic fingerprint over the normalized rows. Row order matters
- * (it is the scan order), object key order is fixed by the normalizer.
- */
-export function fingerprintConversations(
-  conversations: readonly Conversation[],
-  source: ConversationScanResult['source'],
-): string {
-  const payload = JSON.stringify({ source, count: conversations.length, conversations });
-  const a = fnv1a32(payload, 0x811c9dc5).toString(16).padStart(8, '0');
-  const b = fnv1a32(payload, 0x9e3779b9).toString(16).padStart(8, '0');
-  return `${a}${b}`;
-}
-
-// ── build ──────────────────────────────────────────────────────────
+// Backward-compatible re-exports (T3 public surface lives here).
+export { CONVERSATION_SNAPSHOT_SCHEMA_VERSION, migrateStoredSnapshot, validateStoredSnapshot };
+export type { ConversationSnapshot, SaveSnapshotResult };
+export { fingerprintConversations };
 
 /**
  * Build a snapshot from a scan result. Throws for incomplete scans —
@@ -100,41 +69,42 @@ export function buildConversationSnapshot(
   return snapshot;
 }
 
-// ── storage (chrome.storage.local) ─────────────────────────────────
-
-type LocalStorageArea = typeof chrome.storage.local;
-
-function localArea(): LocalStorageArea | null {
-  try {
-    // ReferenceError (no chrome in Node without a mock) is caught → null,
-    // so callers fail closed instead of crashing.
-    return chrome.storage.local;
-  } catch {
-    return null;
-  }
+function defaultStorage(): SnapshotStorageAdapter {
+  return createChromeSnapshotStorage();
 }
 
 /**
- * Persist a scan result as THE snapshot. Incomplete scans, unavailable
- * storage, or storage failures return `{ok:false}` and leave the previously
- * stored snapshot untouched.
+ * Persist a scan result as THE snapshot. Steps, in order (nothing is
+ * written before the last one succeeds):
+ *   1. completeness gate (incomplete scan → refuse, storage untouched),
+ *   2. build the payload,
+ *   3. strict validation of the built payload (catches builder bugs),
+ *   4. single atomic write.
+ * Any failure returns `{ok:false}` and leaves the stored snapshot
+ * exactly as it was.
  */
 export async function saveConversationSnapshot(
   result: ConversationScanResult,
   savedAtMs: number,
+  storage: SnapshotStorageAdapter = defaultStorage(),
 ): Promise<SaveSnapshotResult> {
   if (!result.complete) {
     return { ok: false, error: 'Scan is incomplete — existing snapshot left untouched.' };
   }
 
-  const storage = localArea();
-  if (storage === null) {
-    return { ok: false, error: 'chrome.storage.local is unavailable — snapshot not saved.' };
+  let snapshot: ConversationSnapshot;
+  try {
+    snapshot = buildConversationSnapshot(result, savedAtMs);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+
+  if (validateStoredSnapshot(snapshot) === null) {
+    return { ok: false, error: 'Built snapshot failed validation — storage not touched.' };
   }
 
   try {
-    const snapshot = buildConversationSnapshot(result, savedAtMs);
-    await storage.set({ [CONVERSATION_SNAPSHOT_KEY]: snapshot });
+    await storage.write(CONVERSATION_SNAPSHOT_KEY, snapshot);
     return { ok: true, snapshot };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
@@ -142,31 +112,19 @@ export async function saveConversationSnapshot(
 }
 
 /**
- * Load the stored snapshot. Fail-closed: missing, malformed, or
- * foreign-schema data returns `null` (the caller must rescan).
+ * Load the stored snapshot (validating or migrating it on the fly).
+ * Fail-closed: missing, malformed, corrupt, or foreign-schema data
+ * returns `null`; this function never writes to storage.
  */
-export async function getConversationSnapshot(): Promise<ConversationSnapshot | null> {
-  const storage = localArea();
-  if (storage === null) {
-    return null;
-  }
-
+export async function getConversationSnapshot(
+  storage: SnapshotStorageAdapter = defaultStorage(),
+): Promise<ConversationSnapshot | null> {
   try {
-    const result = await storage.get(CONVERSATION_SNAPSHOT_KEY);
-    const stored: unknown = result[CONVERSATION_SNAPSHOT_KEY];
-    if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) {
+    const stored = await storage.read(CONVERSATION_SNAPSHOT_KEY);
+    if (stored === undefined || stored === null) {
       return null;
     }
-    const candidate = stored as Partial<ConversationSnapshot>;
-    if (
-      candidate.schemaVersion !== CONVERSATION_SNAPSHOT_SCHEMA_VERSION ||
-      typeof candidate.scanId !== 'string' ||
-      candidate.scanId === '' ||
-      !Array.isArray(candidate.conversations)
-    ) {
-      return null;
-    }
-    return candidate as ConversationSnapshot;
+    return migrateStoredSnapshot(stored);
   } catch {
     return null;
   }
