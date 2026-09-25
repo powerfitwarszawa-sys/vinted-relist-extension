@@ -1,9 +1,11 @@
 /**
- * Inbox / Messages module — public surface (P0, T1+T2).
+ * Inbox / Messages module — public surface (P0, T1+T2+T3).
  *
  * Import from here in background/UI/tests:
- *   import { renderMessageTemplate, selectNextTemplate,
- *            evaluateMessageCooldown, createSafetyLock } from '../core/messages';
+ *   import { renderMessageTemplate, evaluateMessageCooldown,
+ *            createSafetyLock, scanConversations,
+ *            normalizeConversation, dedupeConversations,
+ *            saveConversationSnapshot } from '../core/messages';
  */
 
 export * from './contracts';
@@ -17,3 +19,17 @@ export {
   canStartMessageOperation,
   releaseSafetyLock,
 } from './safety-lock';
+export { normalizeConversation } from './conversation-normalizer';
+export { dedupeConversations } from './conversation-dedupe';
+export {
+  scanConversations,
+  ConversationScanError,
+} from './conversation-scanner';
+export {
+  CONVERSATION_SNAPSHOT_KEY,
+  CONVERSATION_SNAPSHOT_SCHEMA_VERSION,
+  fingerprintConversations,
+  buildConversationSnapshot,
+  saveConversationSnapshot,
+  getConversationSnapshot,
+} from './conversation-snapshot';

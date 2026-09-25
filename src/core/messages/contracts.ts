@@ -47,13 +47,124 @@ export interface Conversation {
   itemPrice?: number;
   currency?: string;
   lastMessageBody: string;
-  /** ISO timestamp of the last message in the thread. */
-  lastMessageAt: string;
-  /** True when the last message in the thread is ours (blocks auto-reply). */
-  lastMessageFromSelf: boolean;
+  /**
+   * ISO timestamp of the last message in the thread.
+   * Absent when the source has no (parseable) date — unknown, never guessed.
+   */
+  lastMessageAt?: string;
+  /**
+   * Whether the last message is ours. Tri-state: absent = author unknown
+   * (the scanner must not assume `replied` without proof).
+   */
+  lastMessageFromSelf?: boolean;
   unreadCount: number;
-  replyStatus: ConversationReplyStatus;
+  /** Observed Vinted-side state (T3 scan axis). */
+  scanStatus: ConversationScanStatus;
+  /** How trustworthy the normalized row is (complete/degraded/unknown). */
+  dataQuality: ConversationDataQuality;
+  /** Conversation URL as reported by the source; absent when unknown. */
+  conversationUrl?: string;
+  /**
+   * Extension-side reply lifecycle (pending approval, sent via history…).
+   * Deliberately optional: a scan alone cannot know it; later phases merge
+   * the local message history into this field.
+   */
+  replyStatus?: ConversationReplyStatus;
   lastError?: string;
+}
+
+// ── T3: read-only conversation scanning ────────────────────────────
+
+/**
+ * Observed state of a conversation during a scan. Separate from
+ * ConversationReplyStatus (our reply lifecycle) on purpose.
+ *
+ * `replied` is only produced when the last message author is known to be
+ * us — missing data never degrades into `replied`.
+ */
+export type ConversationScanStatus =
+  | 'unread'
+  | 'awaiting-reply'
+  | 'replied'
+  | 'archived'
+  | 'unknown';
+
+export type ConversationDataQuality = 'complete' | 'degraded' | 'unknown';
+
+export type ConversationScanWarningCode =
+  /** Row is not an object / unusable structure. */
+  | 'invalid-item'
+  /** No stable conversation id → row dropped. */
+  | 'missing-id'
+  /** Last message exists but carries no date. */
+  | 'missing-date'
+  /** Date present but unparseable → treated as unknown, not as "now". */
+  | 'invalid-date'
+  /** Last message exists but its author cannot be resolved. */
+  | 'unknown-author'
+  /** An expected field is absent → data quality degraded. */
+  | 'missing-field'
+  /** Vinted response shape not recognized → explicit, never silently ok. */
+  | 'unsupported-structure'
+  /** Same conversationId seen more than once in one scan. */
+  | 'duplicate-item'
+  /** Page fetch threw (network/http/unknown). */
+  | 'page-fetch-failed'
+  /** Session/auth failure (401/403) → fail closed, no retry. */
+  | 'session-expired'
+  /** Rate limited (429) → fail closed. */
+  | 'rate-limited'
+  /** CAPTCHA challenge observed → fail closed. */
+  | 'captcha'
+  /** Cursor did not advance → stopped to avoid an infinite loop. */
+  | 'pagination-loop'
+  /** Page announced more data but returned no cursor. */
+  | 'missing-cursor'
+  /** Stopped at the configured page cap; resume via nextCursor. */
+  | 'max-pages-reached';
+
+export interface ConversationScanWarning {
+  code: ConversationScanWarningCode;
+  message: string;
+  /** Conversation id or row index the warning refers to, when known. */
+  itemId?: string;
+}
+
+/**
+ * Result of one read-only scan.
+ *
+ * `complete: false` means the scan failed mid-way (fetch/session/structure
+ * error): the conversations collected so far are kept for diagnostics, but
+ * the snapshot layer must refuse to persist the result as a full snapshot.
+ */
+export interface ConversationScanResult {
+  scanId: string;
+  startedAt: string;
+  finishedAt: string;
+  source: 'dom' | 'read-only-api';
+  conversations: Conversation[];
+  warnings: ConversationScanWarning[];
+  hasMore: boolean;
+  nextCursor?: string;
+  /** False → failed/partial scan; never persist as a complete snapshot. */
+  complete: boolean;
+}
+
+/** One page of raw (untrusted) rows returned by a data source. */
+export interface ConversationPage {
+  raw: unknown[];
+  hasMore: boolean;
+  nextCursor?: string;
+}
+
+/**
+ * Read-only source of conversation pages. The only capability the scanner
+ * depends on — implementations must never write (GET-only client in
+ * src/content/messages).
+ */
+export interface ConversationDataSource {
+  readonly kind: 'dom' | 'read-only-api';
+  fetchPage(cursor?: string): Promise<ConversationPage>;
 }
 
 // ── Templates ──────────────────────────────────────────────────────
